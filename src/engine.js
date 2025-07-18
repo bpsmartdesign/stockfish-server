@@ -5,12 +5,14 @@ export function createStockfishEngine() {
   const listeners = [];
 
   engine.stdout.on("data", (data) => {
-    const lines = data.toString().split("\n");
-    lines.forEach((line) => {
-      if (line.trim()) {
-        listeners.forEach((cb) => cb(line.trim()));
-      }
-    });
+    data
+      .toString()
+      .split("\n")
+      .forEach((line) => {
+        if (line.trim()) {
+          listeners.forEach((cb) => cb(line.trim()));
+        }
+      });
   });
 
   return {
