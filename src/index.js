@@ -45,7 +45,14 @@ class ChessServer {
 
     // If player is black, Stockfish should move first
     if (playerColor === "black") {
-      setTimeout(() => this.makeStockfishMove(gameId), 500);
+      // Stockfish is white, so move first
+      const { game } = this.activeGames.get(gameId);
+      const bestMove = await this.getBestMove(engine, game.chess.fen(), level);
+      if (bestMove) {
+        game.chess.move(bestMove, { sloppy: true });
+        game.moves.push(bestMove);
+        game.lastMoveAt = new Date();
+      }
     }
 
     res.status(201).json({
