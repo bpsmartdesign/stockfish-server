@@ -4,9 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "dev": "node src/index.js",
+    "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -15,17 +14,10 @@
   "dependencies": {
     "chess.js": "^1.4.0",
     "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "stockfish.js": "^10.0.2",
-    "stockfish.wasm": "^0.10.0"
+    "express": "^5.1.0"
   },
   "devDependencies": {
-    "@types/chess.js": "^0.13.7",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "@types/node": "^24.0.14",
-    "nodemon": "^3.1.10",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "jest": "^30.0.4",
+    "nodemon": "^3.1.10"
   }
 }
