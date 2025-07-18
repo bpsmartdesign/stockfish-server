@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
-import stockfish from "stockfish.js";
 import { Chess } from "chess.js";
+import { createStockfishEngine } from "./engine.js";
 
 const FILE_VIBRATIONS = { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8 };
 const RANK_VIBRATIONS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8 };
@@ -31,7 +31,7 @@ class ChessServer {
     const { playerColor = "white", level = 2 } = req.body;
 
     try {
-      const engine = stockfish();
+      const engine = createStockfishEngine();
       const gameId = Date.now().toString();
       const game = {
         chess: new Chess(),
@@ -44,9 +44,6 @@ class ChessServer {
       };
 
       this.activeGames.set(gameId, { engine, game });
-
-      engine.onmessage = (msg) =>
-        typeof msg === "string" && console.debug(`[${gameId}] Engine: ${msg}`);
 
       engine.postMessage("uci");
       engine.postMessage("isready");
@@ -129,26 +126,25 @@ class ChessServer {
     const { engine, game } = activeGame;
 
     return new Promise((resolve) => {
-      engine.onmessage = (msg) => {
-        if (typeof msg === "string" && msg.includes("bestmove")) {
-          const move = msg.match(/bestmove (\w+)/)?.[1];
-          if (move) {
-            try {
-              game.vibrationSequence = this.convertMoveToVibration(
-                move,
-                game.chess
-              );
-              game.chess.move(move);
-              game.moves.push(move);
-              this.updateGameStatus(game);
-            } catch (err) {
-              console.error("Error processing move:", err);
-            }
+      const handler = (msg) => {
+        if (msg.startsWith("bestmove")) {
+          const move = msg.split(" ")[1];
+          engine.removeMessageListener(handler);
+
+          if (move && game.chess.move(move, { sloppy: true })) {
+            game.vibrationSequence = this.convertMoveToVibration(
+              move,
+              game.chess
+            );
+            game.moves.push(move);
+            this.updateGameStatus(game);
           }
+
           resolve();
         }
       };
 
+      engine.addMessageListener(handler);
       engine.postMessage(`position fen ${game.chess.fen()}`);
       engine.postMessage(`go depth ${Math.min(22, 5 + game.stockfishLevel)}`);
     });
@@ -179,15 +175,15 @@ class ChessServer {
     const tempChess = new Chess(chess.fen());
     tempChess.move(move);
 
-    const ambiguousPieces = tempChess
+    const ambiguous = tempChess
       .board()
       .flat()
       .filter((sq) => {
         return sq && sq.type === moveObj.piece && sq.color === moveObj.color;
       });
 
-    if (ambiguousPieces.length > 1) {
-      components.push(7); // disambiguation
+    if (ambiguous.length > 1) {
+      components.push(7); // Disambiguation
       components.push(FILE_VIBRATIONS[moveObj.from[0]]);
       components.push(RANK_VIBRATIONS[moveObj.from[1]]);
     }
@@ -202,7 +198,7 @@ class ChessServer {
       return Array(vibrations)
         .fill()
         .flatMap((_, j) => [
-          500,
+          500, // vibration
           j < vibrations - 1
             ? 100
             : i < components.length - 1
@@ -217,7 +213,7 @@ class ChessServer {
       const oneHourAgo = new Date(Date.now() - 3600000);
       this.activeGames.forEach(({ engine, game }, gameId) => {
         if (game.lastMoveAt < oneHourAgo) {
-          engine.terminate?.(); // prevent crash if terminate is not defined
+          engine.terminate?.();
           this.activeGames.delete(gameId);
         }
       });
