@@ -28,30 +28,28 @@ class ChessServer {
     const gameId = Date.now().toString();
     const chess = new Chess();
 
-    this.activeGames.set(gameId, {
-      engine,
-      game: {
-        chess,
-        playerColor,
-        stockfishLevel: level,
-        status: "active",
-        moves: [],
-        lastMoveAt: new Date(),
-      },
-    });
+    const game = {
+      chess,
+      playerColor,
+      stockfishLevel: level,
+      status: "active",
+      moves: [],
+      lastMoveAt: new Date(),
+    };
+
+    this.activeGames.set(gameId, { engine, game });
 
     engine.postMessage("uci");
     engine.postMessage("isready");
 
-    // If player is black, Stockfish should move first
     if (playerColor === "black") {
-      // Stockfish is white, so move first
-      const { game } = this.activeGames.get(gameId);
-      const bestMove = await this.getBestMove(engine, game.chess.fen(), level);
+      const bestMove = await this.getBestMove(engine, chess.fen(), level);
       if (bestMove) {
-        game.chess.move(bestMove, { sloppy: true });
-        game.moves.push(bestMove);
-        game.lastMoveAt = new Date();
+        const sfMove = chess.move(bestMove, { sloppy: true });
+        if (sfMove) {
+          game.moves.push(sfMove.san);
+          game.lastMoveAt = new Date();
+        }
       }
     }
 
@@ -66,7 +64,6 @@ class ChessServer {
     const gameId = req.params.id;
     const { move } = req.body;
     const activeGame = this.activeGames.get(gameId);
-
     if (!activeGame) return res.status(404).json({ error: "Game not found" });
 
     const { engine, game } = activeGame;
@@ -76,8 +73,12 @@ class ChessServer {
     }
 
     try {
-      game.chess.move(move, { sloppy: true });
-      game.moves.push(move);
+      const userMove = game.chess.move(move, { sloppy: true });
+      if (!userMove) {
+        return res.status(400).json({ error: "Illegal move" });
+      }
+
+      game.moves.push(userMove.san);
 
       const bestMove = await this.getBestMove(
         engine,
@@ -85,18 +86,21 @@ class ChessServer {
         game.stockfishLevel
       );
       if (bestMove) {
-        game.chess.move(bestMove, { sloppy: true });
-        game.moves.push(bestMove);
+        const sfMove = game.chess.move(bestMove, { sloppy: true });
+        if (sfMove) {
+          game.moves.push(sfMove.san);
+          game.lastMoveAt = new Date();
+        }
       }
 
       res.json({
         fen: game.chess.fen(),
         moves: game.moves,
-        stockfishReply: bestMove,
+        stockfishReply: game.moves.at(-1),
       });
     } catch (err) {
       console.error("Move failed:", err);
-      res.status(400).json({ error: "Illegal move" });
+      res.status(400).json({ error: "Move failed" });
     }
   }
 
@@ -126,34 +130,20 @@ class ChessServer {
       fen: game.chess.fen(),
       moves: game.moves,
       lastMoveAt: game.lastMoveAt,
+      playerColor: game.playerColor, // ✅ added
     });
   }
 
   validateMoveFormat(move) {
-    return typeof move === "string" && /^[a-h][1-8][a-h][1-8]$/.test(move);
-  }
-
-  async makeStockfishMove(gameId) {
-    const activeGame = this.activeGames.get(gameId);
-    if (!activeGame) return;
-
-    const { engine, game } = activeGame;
-
-    const bestMove = await this.getBestMove(
-      engine,
-      game.chess.fen(),
-      game.stockfishLevel
+    return (
+      typeof move === "string" &&
+      /^[KQRBN]?[a-h]?[1-8]?[x:]?[a-h][1-8](=[QRBN])?[+#]?$/.test(move)
     );
-    if (bestMove) {
-      game.chess.move(bestMove, { sloppy: true });
-      game.moves.push(bestMove);
-      game.lastMoveAt = new Date();
-    }
   }
 
   start(port = 3000) {
     this.app.listen(port, () =>
-      console.log(`✅ Chess server running on http://localhost:${port}`)
+      console.log(`✅ Chess server running at http://localhost:${port}`)
     );
   }
 }
