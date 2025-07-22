@@ -1,7 +1,8 @@
 import { spawn } from "child_process";
 
 export function createStockfishEngine() {
-  const engine = spawn("stockfish");
+  // const engine = spawn("stockfish");
+  const engine = spawn('/usr/games/stockfish');
   const listeners = [];
 
   engine.stdout.on("data", (data) => {
