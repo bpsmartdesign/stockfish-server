@@ -1,23 +1,29 @@
-# Base image
+# Use official Node image
 FROM node:20-slim
 
-# Install stockfish
-RUN apt-get update && apt-get install -y stockfish
+# Install stockfish engine
+RUN apt-get update && \
+    apt-get install -y stockfish && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Set working dir
+# Create app directory
 WORKDIR /app
 
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy files
+# Copy everything
 COPY . .
 
 # Install dependencies
 RUN pnpm install
 
+# Set environment
+ENV NODE_ENV=production
+
 # Expose port
 EXPOSE 3000
 
-# Run server
-CMD ["pnpm", "dev"]
+# Start the server
+CMD ["pnpm", "start"]
