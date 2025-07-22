@@ -143,7 +143,7 @@ class ChessServer {
 
   start(port = 3000) {
     this.app.listen(port, () =>
-      console.log(`✅ Chess server running at http://localhost:${port}`)
+      console.log(`✅ Chess server running`)
     );
   }
 }
