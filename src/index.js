@@ -59,7 +59,6 @@ class ChessServer {
       playerColor,
     });
   }
-
   async submitMove(req, res) {
     const gameId = req.params.id;
     const { move } = req.body;
@@ -103,7 +102,6 @@ class ChessServer {
       res.status(400).json({ error: "Move failed" });
     }
   }
-
   async getBestMove(engine, fen, level) {
     return new Promise((resolve) => {
       const handler = (msg) => {
@@ -133,7 +131,6 @@ class ChessServer {
       playerColor: game.playerColor, // ✅ added
     });
   }
-
   validateMoveFormat(move) {
     return (
       typeof move === "string" &&
@@ -142,7 +139,6 @@ class ChessServer {
       )
     );
   }
-
   start(port = 3000) {
     this.app.listen(port, "0.0.0.0", () =>
       console.log(`✅ Chess server running`)
