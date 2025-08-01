@@ -137,7 +137,9 @@ class ChessServer {
   validateMoveFormat(move) {
     return (
       typeof move === "string" &&
-      /^[KQRBN]?[a-h]?[1-8]?[x:]?[a-h][1-8](=[QRBN])?[+#]?$/.test(move)
+      /^(O-O(-O)?|[KQRBN]?[a-h]?[1-8]?[x:]?[a-h][1-8](=[QRBN])?[+#]?)$/.test(
+        move
+      )
     );
   }
 
