@@ -82,7 +82,7 @@ class ChessServer {
       const bestMove = await this.getBestMove(
         engine,
         game.chess.fen(),
-        game.stockfishLevel
+        game.stockfishLevel,
       );
       if (bestMove) {
         const sfMove = game.chess.move(bestMove, { sloppy: true });
@@ -135,13 +135,13 @@ class ChessServer {
     return (
       typeof move === "string" &&
       /^(O-O(-O)?|[KQRBN]?[a-h]?[1-8]?[x:]?[a-h][1-8](=[QRBN])?[+#]?)$/.test(
-        move
+        move,
       )
     );
   }
-  start(port = 3000) {
+  start(port = 3002) {
     this.app.listen(port, "0.0.0.0", () =>
-      console.log(`✅ Chess server running`)
+      console.log(`✅ Chess server running`),
     );
   }
 }
